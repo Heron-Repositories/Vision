@@ -2,6 +2,8 @@
 import sys
 from os import path
 from datetime import datetime
+
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 current_dir = path.dirname(path.abspath(__file__))
@@ -44,9 +46,9 @@ def initialise(worker_object):
     global acquiring_on
     global vis
     global frame_index
-    time_stamp: str
-    ts_frame_index: bool
-    ts_font_size: int
+    global time_stamp
+    global ts_frame_index
+    global ts_font_size
 
     try:
         visualisation_on = worker_object.parameters[0]
@@ -80,10 +82,28 @@ def add_timestamp(frame):
     global font_file
 
     font = ImageFont.truetype(font_file, ts_font_size)
-
-    pil_image = Image(frame)
-    draw_image = ImageDraw(pil_image)
     coordinates = (10, 10)
+
+    match time_stamp:
+        case 'Top Right':
+            coordinates = (frame.shape[0] - 10, 10)
+        case 'Bottom Left':
+            coordinates = (10, frame.shape[1] - 10)
+        case 'Bottom Right':
+            coordinates = (frame.shape[0] - 10, frame.shape[1] - 10)
+
+    str_datetime, hms_pixels, micro_pixels = now()
+    frame[:3, 0, 0] = hms_pixels
+    frame[:3, 1, 0] = micro_pixels
+
+    if ts_frame_index:
+        str_datetime = '{}, i={}'.format(str_datetime, frame_index)
+
+    pil_image = Image.fromarray(frame)
+    draw_image = ImageDraw.Draw(pil_image)
+    draw_image.text(coordinates, str_datetime, (255, 255, 255), font)
+
+    return np.array(pil_image)
 
 
 def run_camera(worker_object):
@@ -91,6 +111,7 @@ def run_camera(worker_object):
     global acquiring_on
     global vis
     global frame_index
+    global time_stamp
 
     while not acquiring_on:
         gu.accurate_delay(0.1)
@@ -99,6 +120,9 @@ def run_camera(worker_object):
         ret, result = capture.read()
         worker_object.savenodestate_update_substate_df(frame=frame_index)
         frame_index += 1
+
+        if time_stamp != 'No':
+            result = add_timestamp(result)
         worker_object.send_data_to_com(result)
 
         vis.visualisation_on = worker_object.parameters[0]
