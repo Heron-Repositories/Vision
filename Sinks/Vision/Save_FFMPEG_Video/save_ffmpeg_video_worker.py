@@ -1,7 +1,10 @@
 
 import numpy as np
 import time
-import ffmpeg
+try:
+    import ffmpeg
+except:
+    print('You need to install FFMPEG. If you are using conda do a `conda install ffmpeg` followed by a `pip install ffmpeg-python`')
 from datetime import datetime
 from subprocess import Popen
 import cv2

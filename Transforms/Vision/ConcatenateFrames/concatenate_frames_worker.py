@@ -43,31 +43,32 @@ def setup_output_frame():
                 'Position': [int(i) for i in c.split(':')[2].split('x')]}
         cameras_info[index] = info
 
-    widths = np.zeros(np.max([cameras_info[c]['Position'][0] for c in cameras_info]) + 1)
-    heights = np.zeros(np.max([cameras_info[c]['Position'][1] for c in cameras_info]) + 1)
+    widths = np.zeros(np.max([cameras_info[c]['Position'][1] for c in cameras_info]) + 1)
+    heights = np.zeros(np.max([cameras_info[c]['Position'][0] for c in cameras_info]) + 1)
     widths[0] = pixel_gap
     heights[0] = pixel_gap
 
     for cam in cameras_info.keys():
         width = cameras_info[cam]['Resolution'][0]
         height = cameras_info[cam]['Resolution'][1]
-        x_pos = cameras_info[cam]['Position'][0]
-        y_pos = cameras_info[cam]['Position'][1]
+        x_pos = cameras_info[cam]['Position'][1]
+        y_pos = cameras_info[cam]['Position'][0]
         if widths[x_pos] < width:
             widths[x_pos] = width + pixel_gap * x_pos
         if heights[y_pos] < height:
             heights[y_pos] = height + pixel_gap * y_pos
     widths -= int(pixel_gap / 2)
     heights -= int(pixel_gap / 2)
-    final_resolution = (int(widths.sum()), int(heights.sum()), int(image_depth))
+
+    final_resolution = (int(heights.sum()), int(widths.sum()), int(image_depth))
 
     result_frame = np.zeros(final_resolution).astype(np.uint8)
 
     indices_of_frames_in = np.zeros(len(cameras_info))
     result_frame_info = np.empty((len(cameras_info), 4))
     for cam in cameras_info.keys():
-        pos_x = cameras_info[cam]['Position'][0]
-        pos_y = cameras_info[cam]['Position'][1]
+        pos_x = cameras_info[cam]['Position'][1]
+        pos_y = cameras_info[cam]['Position'][0]
         start_x = int(widths[:pos_x].sum())
         end_x = start_x + cameras_info[cam]['Resolution'][0]
         start_y = int(heights[:pos_y].sum())
@@ -116,8 +117,8 @@ def concatenate_frames(data, parameters):
     for cam in cameras_info.keys():
         if 'Camera##{}'.format(cam) in topic:
             indices_of_frames_in[cam] += 1
-            result_frame[result_frame_info[cam, 0]:result_frame_info[cam, 1],
-                         result_frame_info[cam, 2]:result_frame_info[cam, 3],
+            result_frame[result_frame_info[cam, 2]:result_frame_info[cam, 3],
+                         result_frame_info[cam, 0]:result_frame_info[cam, 1],
                          :] = image_in
             worker_object.savenodestate_update_substate_df(camera=cam, frame=indices_of_frames_in[cam])
             break

@@ -89,16 +89,15 @@ def add_timestamp(frame):
     global font_file
 
     font = ImageFont.truetype(font_file, ts_font_size)
-    coordinates = (10, 10)
+    coordinates = (10, 5 + ts_font_size)
 
-    # TODO: There is a bug with the two Bottom cases
     match time_stamp:
         case 'Top Right':
-            coordinates = (frame.shape[0] - 10, 10)
+            coordinates = (frame.shape[1] - 11 * ts_font_size, 5 + ts_font_size)
         case 'Bottom Left':
-            coordinates = (10, frame.shape[1] - 10)
+            coordinates = (10, frame.shape[0] - (5 + ts_font_size))
         case 'Bottom Right':
-            coordinates = (frame.shape[0] - 10, frame.shape[1] - 10)
+            coordinates = (frame.shape[1] - 11*ts_font_size, frame.shape[0] - (5 + ts_font_size))
 
     str_datetime, hms_pixels, micro_pixels = now()
 
