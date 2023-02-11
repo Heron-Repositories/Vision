@@ -18,10 +18,9 @@ cameras_setup_string: str
 image_depth: int
 pixel_gap: int
 result_frame: np.ndarray
-widths = []
-heights = []
-
-
+widths: np.ndarray
+heights: np.ndarray
+result_frame_info: np.ndarray
 
 
 def setup_output_frame():
@@ -32,11 +31,12 @@ def setup_output_frame():
     global image_depth
     global widths
     global heights
+    global result_frame_info
 
     cameras_info = {}
     cameras_setup_list = cameras_setup_string.split(', ')
     for c in cameras_setup_list:
-        index = 'Camera##{}'.format(c.split(':')[0])
+        index = int(c.split(':')[0])
         info = {'Resolution': [int(i) for i in c.split(':')[1].split('x')],
                 'Position': [int(i) for i in c.split(':')[2].split('x')]}
         cameras_info[index] = info
@@ -59,7 +59,18 @@ def setup_output_frame():
     heights -= int(pixel_gap / 2)
     final_resolution = (int(widths.sum()), int(heights.sum()), int(image_depth))
 
-    result_frame = np.zeros(final_resolution)
+    result_frame = np.zeros(final_resolution).astype(np.uint8)
+
+    result_frame_info = np.empty((len(cameras_info), 4))
+    for cam in cameras_info.keys():
+        pos_x = cameras_info[cam]['Position'][0]
+        pos_y = cameras_info[cam]['Position'][1]
+        start_x = int(widths[:pos_x].sum())
+        end_x = start_x + cameras_info[cam]['Resolution'][0]
+        start_y = int(heights[:pos_y].sum())
+        end_y = start_y + cameras_info[cam]['Resolution'][1]
+        result_frame_info[cam, :] = np.array([start_x, end_x, start_y, end_y])
+    result_frame_info = result_frame_info.astype(int)
 
 
 def initialise(worker_object):
@@ -67,16 +78,12 @@ def initialise(worker_object):
     global cameras_setup_string
     global pixel_gap
     global image_depth
-    global time_stamp
-    global ts_font_size
 
     try:
         visualisation_on = worker_object.parameters[0]
         cameras_setup_string = worker_object.parameters[1]
         image_depth = worker_object.parameters[2]
         pixel_gap = worker_object.parameters[3]
-        time_stamp = worker_object.parameters[4]
-        ts_font_size = worker_object.parameters[5]
     except:
         return False
 
@@ -88,50 +95,30 @@ def initialise(worker_object):
 
     worker_object.savenodestate_create_parameters_df(visualisation_on=vis.visualisation_on,
                                                      cameras_setup_string=cameras_setup_string,
-                                                     image_depth=image_depth, pixel_gap=pixel_gap,
-                                                     time_stamp=time_stamp, ts_font_size=ts_font_size)
+                                                     image_depth=image_depth, pixel_gap=pixel_gap)
 
     return True
-
-
-def do_the_concatenation(cam, image_in):
-    global cameras_info
-    global result_frame
-    global widths
-    global heights
-
-    pos_x = cameras_info[cam]['Position'][0]
-    pos_y = cameras_info[cam]['Position'][1]
-    start_x = int(widths[:pos_x].sum())
-    end_x = start_x + cameras_info[cam]['Resolution'][0]
-    start_y = int(heights[:pos_y].sum())
-    end_y = start_y + cameras_info[cam]['Resolution'][1]
-    result_frame[start_x:end_x, start_y:end_y, :] = image_in
-
-
-def timestamp_result_frame(image_in):
-    global result_frame
-    
 
 
 def concatenate_frames(data, parameters):
     global cameras_info
     global result_frame
-    global time_stamp
+    global result_frame_info
     
     topic = data[0].decode('utf-8')
     data_in = data[1:]
-    image_in = Socket.reconstruct_array_from_bytes_message_cv2correction(data_in)
+    image_in = Socket.reconstruct_data_from_bytes_message(data_in)
+
     for cam in cameras_info.keys():
-        if cam in topic:
-            image_in = np.ascontiguousarray(image_in) / 255
-            if time_stamp != 'No':
-                timestamp_result_frame(image_in)
-            do_the_concatenation(cam, image_in)
+        if 'Camera##{}'.format(cam) in topic:
+            result_frame[result_frame_info[cam, 0]:result_frame_info[cam, 1],
+                         result_frame_info[cam, 2]:result_frame_info[cam, 3],
+                         :] = image_in
             break
 
     vis.visualisation_on = worker_object.parameters[0]
-    vis.visualise(result_frame)
+    if vis.visualisation_on:
+        vis.visualise(result_frame)
 
     return [result_frame]
 
