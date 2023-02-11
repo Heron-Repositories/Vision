@@ -1,6 +1,8 @@
 
 import sys
 from os import path
+from datetime import datetime
+from PIL import Image, ImageDraw, ImageFont
 
 current_dir = path.dirname(path.abspath(__file__))
 while path.split(current_dir)[-1] != r'Heron':
@@ -9,50 +11,97 @@ sys.path.insert(0, path.dirname(current_dir))
 
 import cv2 as cv2
 from Heron import general_utils as gu
-from Heron.Operations.Sources.Vision.Camera import camera_com
 from Heron.gui.visualisation_dpg import VisualisationDPG
 
 acquiring_on = False
-capture = None
+capture: cv2.VideoCapture
 vis: VisualisationDPG
-frame=0
+frame_index = 0
+time_stamp: str
+ts_frame_index: bool
+ts_font_size: int
+font_file = path.join(current_dir, 'resources', 'fonts', 'SF-Pro-Rounded-Regular.ttf')
+
+
+def now():
+
+    hour = datetime.now().hour
+    minute = datetime.now().minute
+    second = datetime.now().second
+    micro = datetime.now().microsecond
+
+    string_time = '{}:{}:{}:{}'.format(hour, minute, second, micro)
+
+    hms_state = hour * 60 * 60 + minute * 60 + second
+    hms_pixels = gu.base10_to_base256(hms_state, normalise=True)
+    micro_pixels = gu.base10_to_base256(micro, normalise=True)
+
+    return string_time, hms_pixels, micro_pixels
+
+
+def initialise(worker_object):
+    global capture
+    global acquiring_on
+    global vis
+    global frame_index
+    time_stamp: str
+    ts_frame_index: bool
+    ts_font_size: int
+
+    try:
+        visualisation_on = worker_object.parameters[0]
+        cam_index = worker_object.parameters[1]
+        time_stamp = worker_object.parameters[2]
+        ts_frame_index = worker_object.parameters[3]
+        ts_font_size = worker_object.parameters[4]
+        capture = cv2.VideoCapture(cam_index, cv2.CAP_DSHOW)
+        acquiring_on = True
+
+        worker_object.savenodestate_create_parameters_df(visualisation_on=visualisation_on, camera_index=cam_index,
+                                                         time_stamp=time_stamp, ts_frame_index=ts_frame_index,
+                                                         ts_font_size=ts_font_size)
+
+        vis = VisualisationDPG(_node_name=worker_object.node_name, _node_index=worker_object.node_index,
+                               _visualisation_type='Image', _buffer=1)
+
+        print('Got camera parameters. Starting capture')
+    except:
+        gu.accurate_delay(1)
+        acquiring_on = False
+
+    return acquiring_on
+
+
+def add_timestamp(frame):
+    global frame_index
+    global time_stamp
+    global ts_frame_index
+    global ts_font_size
+    global font_file
+
+    font = ImageFont.truetype(font_file, ts_font_size)
+
+    pil_image = Image(frame)
+    draw_image = ImageDraw(pil_image)
+    coordinates = (10, 10)
 
 
 def run_camera(worker_object):
     global capture
     global acquiring_on
     global vis
-    global frame
+    global frame_index
 
-    vis = VisualisationDPG(_node_name=worker_object.node_name, _node_index=worker_object.node_index,
-                           _visualisation_type='Image', _buffer=1)
-
-    if not acquiring_on:  # Get the parameters from the node
-
-        while not acquiring_on:
-
-            try:
-                cam_index = worker_object.parameters[1]
-                capture = cv2.VideoCapture(cam_index, cv2.CAP_DSHOW)
-                acquiring_on = True
-                print('Got camera parameters. Starting capture')
-            except:
-                cv2.waitKey(1)
-
-    worker_object.savenodestate_create_parameters_df(visualisation_on=False,
-                                                     camera_index=cam_index)
-    worker_object.initialised = True
+    while not acquiring_on:
+        gu.accurate_delay(0.1)
 
     while acquiring_on:
-
         ret, result = capture.read()
-        worker_object.savenodestate_update_substate_df(frame=frame)
-        frame += 1
+        worker_object.savenodestate_update_substate_df(frame=frame_index)
+        frame_index += 1
         worker_object.send_data_to_com(result)
-        try:
-            vis.visualisation_on = worker_object.parameters[0]
-        except:
-            vis.visualisation_on = camera_com.ParametersDefaultValues[0]
+
+        vis.visualisation_on = worker_object.parameters[0]
         vis.visualise(result)
 
 
@@ -64,10 +113,12 @@ def on_end_of_life():
     acquiring_on = False
     try:
         capture.release()
-        vis.kill()
+        vis.end_of_life()
     except:
         pass
 
 
 if __name__ == "__main__":
-    gu.start_the_source_worker_process(work_function=run_camera, end_of_life_function=on_end_of_life)
+    gu.start_the_source_worker_process(initialisation_function=initialise,
+                                       work_function=run_camera,
+                                       end_of_life_function=on_end_of_life)

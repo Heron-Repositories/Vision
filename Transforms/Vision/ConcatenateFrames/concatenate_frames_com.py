@@ -22,7 +22,7 @@ Properties of the generated Node
 BaseName = 'Concatenate Frames'
 NodeAttributeNames = ['Parameters', 'Frames In', 'Frame Out']
 NodeAttributeType = ['Static', 'Input', 'Output']
-ParameterNames = ['Visualisation', 'NodeInd:Res(wxh):Pos(RowxColumn), ...',
+ParameterNames = ['Visualisation', 'NodeInd:Res(wxh):Pos(RowxColumn)',
                   'Image Depth', 'Pixel Gap']
 ParameterTypes = ['bool', 'str', 'int', 'int']
 ParametersDefaultValues = [False, '0:1280x720:1x1, 1:1920x1080:1x2', 4, 10]
