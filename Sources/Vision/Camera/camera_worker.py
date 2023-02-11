@@ -53,13 +53,20 @@ def initialise(worker_object):
     try:
         visualisation_on = worker_object.parameters[0]
         cam_index = worker_object.parameters[1]
-        time_stamp = worker_object.parameters[2]
-        ts_frame_index = worker_object.parameters[3]
-        ts_font_size = worker_object.parameters[4]
+        time_stamp = worker_object.parameters[3]
+        ts_frame_index = worker_object.parameters[4]
+        ts_font_size = worker_object.parameters[5]
+        resolution_x = int(worker_object.parameters[2].split('x')[0])
+        resolution_y = int(worker_object.parameters[2].split('x')[1])
+
         capture = cv2.VideoCapture(cam_index, cv2.CAP_DSHOW)
+        capture.set(cv2.CAP_PROP_FRAME_WIDTH, resolution_x)
+        capture.set(cv2.CAP_PROP_FRAME_HEIGHT, resolution_y)
+
         acquiring_on = True
 
         worker_object.savenodestate_create_parameters_df(visualisation_on=visualisation_on, camera_index=cam_index,
+                                                         resolution=(resolution_x, resolution_y),
                                                          time_stamp=time_stamp, ts_frame_index=ts_frame_index,
                                                          ts_font_size=ts_font_size)
 
@@ -84,6 +91,7 @@ def add_timestamp(frame):
     font = ImageFont.truetype(font_file, ts_font_size)
     coordinates = (10, 10)
 
+    # TODO: There is a bug with the two Bottom cases
     match time_stamp:
         case 'Top Right':
             coordinates = (frame.shape[0] - 10, 10)
@@ -93,6 +101,7 @@ def add_timestamp(frame):
             coordinates = (frame.shape[0] - 10, frame.shape[1] - 10)
 
     str_datetime, hms_pixels, micro_pixels = now()
+
     frame[:3, 0, 0] = hms_pixels
     frame[:3, 1, 0] = micro_pixels
 
@@ -114,19 +123,20 @@ def run_camera(worker_object):
     global time_stamp
 
     while not acquiring_on:
-        gu.accurate_delay(0.1)
+        gu.accurate_delay(1)
 
     while acquiring_on:
         ret, result = capture.read()
-        worker_object.savenodestate_update_substate_df(frame=frame_index)
-        frame_index += 1
+        if ret:
+            worker_object.savenodestate_update_substate_df(frame=frame_index)
+            frame_index += 1
 
-        if time_stamp != 'No':
-            result = add_timestamp(result)
-        worker_object.send_data_to_com(result)
+            if time_stamp != 'No':
+                result = add_timestamp(result)
+            worker_object.send_data_to_com(result)
 
-        vis.visualisation_on = worker_object.parameters[0]
-        vis.visualise(result)
+            vis.visualisation_on = worker_object.parameters[0]
+            vis.visualise(result)
 
 
 def on_end_of_life():

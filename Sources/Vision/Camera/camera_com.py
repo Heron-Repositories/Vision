@@ -23,9 +23,9 @@ Properties of the generated Node
 BaseName = 'Camera'
 NodeAttributeNames = ['Parameters', 'Frame Out']
 NodeAttributeType = ['Static', 'Output']
-ParameterNames = ['Visualisation', 'Cam Index', 'Add Timestamp', 'TS With Frame Index', 'TS Font Size']
-ParameterTypes = ['bool', 'int', 'list', 'bool', 'int']
-ParametersDefaultValues = [False, 0,
+ParameterNames = ['Visualisation', 'Cam Index', 'Camera Resolution', 'Add Timestamp', 'TS With Frame Index', 'TS Font Size']
+ParameterTypes = ['bool', 'int', 'str','list', 'bool', 'int']
+ParametersDefaultValues = [False, 0, '640x480',
                            ['No', 'Top Left', 'Top Right', 'Bottom Left', 'Bottom Right'],
                            False, 20]
 WorkerDefaultExecutable = os.path.join(os.path.dirname(Exec), 'camera_worker.py')

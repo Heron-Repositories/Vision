@@ -21,6 +21,7 @@ result_frame: np.ndarray
 widths: np.ndarray
 heights: np.ndarray
 result_frame_info: np.ndarray
+indices_of_frames_in:np.ndarray
 
 
 def setup_output_frame():
@@ -32,6 +33,7 @@ def setup_output_frame():
     global widths
     global heights
     global result_frame_info
+    global indices_of_frames_in
 
     cameras_info = {}
     cameras_setup_list = cameras_setup_string.split(', ')
@@ -61,6 +63,7 @@ def setup_output_frame():
 
     result_frame = np.zeros(final_resolution).astype(np.uint8)
 
+    indices_of_frames_in = np.zeros(len(cameras_info))
     result_frame_info = np.empty((len(cameras_info), 4))
     for cam in cameras_info.keys():
         pos_x = cameras_info[cam]['Position'][0]
@@ -104,6 +107,7 @@ def concatenate_frames(data, parameters):
     global cameras_info
     global result_frame
     global result_frame_info
+    global indices_of_frames_in
     
     topic = data[0].decode('utf-8')
     data_in = data[1:]
@@ -111,9 +115,11 @@ def concatenate_frames(data, parameters):
 
     for cam in cameras_info.keys():
         if 'Camera##{}'.format(cam) in topic:
+            indices_of_frames_in[cam] += 1
             result_frame[result_frame_info[cam, 0]:result_frame_info[cam, 1],
                          result_frame_info[cam, 2]:result_frame_info[cam, 3],
                          :] = image_in
+            worker_object.savenodestate_update_substate_df(camera=cam, frame=indices_of_frames_in[cam])
             break
 
     vis.visualisation_on = worker_object.parameters[0]
