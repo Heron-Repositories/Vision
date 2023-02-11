@@ -27,7 +27,7 @@ widths = []
 heights = []
 
 
-def read_cameras_setup_string():
+def setup_output_frame():
     global cameras_setup_string
     global cameras_info
     global result_frame
@@ -42,7 +42,7 @@ def read_cameras_setup_string():
         index = 'Camera##{}'.format(c.split(':')[0])
         info = {'Resolution': [int(i) for i in c.split(':')[1].split('x')],
                 'Position': [int(i) for i in c.split(':')[2].split('x')]}
-        info['Data'] = np.zeros((info['Resolution'][0], info['Resolution'][1], image_depth))
+        #info['Data'] = np.zeros((info['Resolution'][0], info['Resolution'][1], image_depth))
         cameras_info[index] = info
 
     widths = np.zeros(np.max([cameras_info[c]['Position'][0] for c in cameras_info]) + 1)
@@ -84,7 +84,7 @@ def initialise(worker_object):
                            _visualisation_type='Image', _buffer=1)
     vis.visualisation_on = visualisation_on
 
-    read_cameras_setup_string()
+    setup_output_frame()
 
     worker_object.savenodestate_create_parameters_df(visualisation_on=vis.visualisation_on,
                                                      cameras_setup_string=cameras_setup_string,
@@ -93,13 +93,13 @@ def initialise(worker_object):
     return True
 
 
-def do_the_concatenation(cam):
+def do_the_concatenation(cam, image_in):
     global cameras_info
-    global pixel_gap
-    global image_depth
     global result_frame
     global widths
     global heights
+
+    image_in = np.ascontiguousarray(image_in) / 255
 
     pos_x = cameras_info[cam]['Position'][0]
     pos_y = cameras_info[cam]['Position'][1]
@@ -107,24 +107,22 @@ def do_the_concatenation(cam):
     end_x = start_x + cameras_info[cam]['Resolution'][0]
     start_y = int(heights[:pos_y].sum())
     end_y = start_y + cameras_info[cam]['Resolution'][1]
-    result_frame[start_x:end_x, start_y:end_y, :] = cameras_info[cam]['Data']
+    result_frame[start_x:end_x, start_y:end_y, :] = image_in
 
 
 def concatenate_frames(data, parameters):
     global cameras_info
     global result_frame
 
-    vis.visualisation_on = worker_object.parameters[0]
-
     topic = data[0].decode('utf-8')
     data_in = data[1:]
     image_in = Socket.reconstruct_array_from_bytes_message_cv2correction(data_in)
     for cam in cameras_info.keys():
         if cam in topic:
-            cameras_info[cam]['Data'] = np.ascontiguousarray(image_in) / 255
-            do_the_concatenation(cam)
+            do_the_concatenation(cam, image_in)
             break
 
+    vis.visualisation_on = worker_object.parameters[0]
     vis.visualise(result_frame)
 
     return [result_frame]
