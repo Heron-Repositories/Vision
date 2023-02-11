@@ -47,6 +47,7 @@ def canny(data, parameters):
 
     message = data[1:]  # data[0] is the topic
     image = Socket.reconstruct_array_from_bytes_message_cv2correction(message)
+
     try:
         vis.visualised_data = cv2.Canny(image, min_val, max_val)
     except:
