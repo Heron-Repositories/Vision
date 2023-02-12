@@ -35,8 +35,8 @@ def now():
     string_time = '{}:{}:{}:{}'.format(hour, minute, second, micro)
 
     hms_state = hour * 60 * 60 + minute * 60 + second
-    hms_pixels = gu.base10_to_base256(hms_state, normalise=True)
-    micro_pixels = gu.base10_to_base256(micro, normalise=True)
+    hms_pixels = gu.base10_to_base256(hms_state, normalise=False)
+    micro_pixels = gu.base10_to_base256(micro, normalise=False)
 
     return string_time, hms_pixels, micro_pixels
 
@@ -101,8 +101,9 @@ def add_timestamp(frame):
 
     str_datetime, hms_pixels, micro_pixels = now()
 
-    frame[:3, 0, 0] = hms_pixels
-    frame[:3, 1, 0] = micro_pixels
+    frame[:10, :20, :] = 0
+    frame[:5, :10, :] = np.tile(hms_pixels, (5, 10, 1))
+    frame[5:10, :10, :] = np.tile(micro_pixels, (5, 10, 1))
 
     if ts_frame_index:
         str_datetime = '{}, i={}'.format(str_datetime, frame_index)

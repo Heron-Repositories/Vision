@@ -28,6 +28,7 @@ video_out: cv2.VideoWriter
 start_timer: float
 number_of_frames = 0
 
+
 def initialise(worker_object):
     return True
 
