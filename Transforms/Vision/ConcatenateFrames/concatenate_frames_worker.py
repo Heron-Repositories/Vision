@@ -101,6 +101,8 @@ def initialise(worker_object):
                                                      cameras_setup_string=cameras_setup_string,
                                                      image_depth=image_depth, pixel_gap=pixel_gap)
 
+    worker_object.num_of_iters_to_update_savenodestate_substate = 4000
+
     return True
 
 

@@ -69,6 +69,7 @@ def initialise(worker_object):
                                                          resolution=(resolution_x, resolution_y),
                                                          time_stamp=time_stamp, ts_frame_index=ts_frame_index,
                                                          ts_font_size=ts_font_size)
+        worker_object.num_of_iters_to_update_savenodestate_substate = 3000
 
         vis = VisualisationDPG(_node_name=worker_object.node_name, _node_index=worker_object.node_index,
                                _visualisation_type='Image', _buffer=1)
