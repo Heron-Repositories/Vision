@@ -102,10 +102,6 @@ def add_timestamp(frame):
 
     str_datetime, hms_pixels, micro_pixels = now()
 
-    #frame[:10, :20, :] = 0
-    #frame[:5, :10, :] = np.tile(hms_pixels, (5, 10, 1))
-    #frame[5:10, :10, :] = np.tile(micro_pixels, (5, 10, 1))
-
     if ts_frame_index:
         str_datetime = '{}, i={}'.format(str_datetime, frame_index)
 
