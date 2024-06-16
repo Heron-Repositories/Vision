@@ -59,7 +59,8 @@ def initialise(worker_object):
         resolution_x = int(worker_object.parameters[2].split('x')[0])
         resolution_y = int(worker_object.parameters[2].split('x')[1])
 
-        capture = cv2.VideoCapture(cam_index, cv2.CAP_DSHOW)
+        #capture = cv2.VideoCapture(cam_index, cv2.CAP_DSHOW)
+        capture = cv2.VideoCapture(cam_index)
         capture.set(cv2.CAP_PROP_FRAME_WIDTH, resolution_x)
         capture.set(cv2.CAP_PROP_FRAME_HEIGHT, resolution_y)
 
